@@ -1,0 +1,657 @@
+{
+  "name": "My workflow 7",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "تذكرة دعم تقني جديدة",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "اسم الموظف",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "بريد الموظف",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "وصف المشكلة",
+              "fieldType": "textarea",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        112
+      ],
+      "id": "2c55d5eb-ed7e-41c3-bd54-2c39cac717db",
+      "name": "On form submission",
+      "webhookId": "15fedead-2d4c-441a-887d-cb75636c5e7e"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=أنت مهندس Help Desk خبير. حلل هذه المشكلة التقنية وحدد: التصنيف [Hardware/Network/Account/Software]، الأولوية [منخفضة/متوسطة/عالية/حرجة]، الفريق المسؤول، وخطوة حل مقترحة أولى (Suggested Fix) يمكن للموظف تجربتها فوراً. أعد النتيجة كـ JSON فقط: {\"category\": \"...\", \"priority\": \"...\", \"team\": \"...\", \"suggested_fix\": \"...\"}\n\nوصف المشكلة: {{ $json['وصف المشكلة'] }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "e2139a79-6635-4ac3-90e5-d6112472a969",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemma-4-31b-it",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        296,
+        232
+      ],
+      "id": "d3cc2318-42e8-4dd2-a22e-f864b010d9c5",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "g38xyssK5TRcl82w",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output;\nconst cleaned = raw.replace(/```json|```/g, '').trim();\nconst parsed = JSON.parse(cleaned);\nconst form = $('On form submission').item.json;\n\nconst slaHoursMap = { 'حرجة': 2, 'عالية': 8, 'متوسطة': 24, 'منخفضة': 72 };\nconst slaHours = slaHoursMap[parsed.priority] || 24;\nconst createdAt = new Date();\nconst slaDeadline = new Date(createdAt.getTime() + slaHours * 60 * 60 * 1000);\nconst ticketId = 'TCK-' + Date.now();\n\nreturn [{ json: {\n  ...parsed,\n  ticketId,\n  employeeName: form['اسم الموظف'],\n  employeeEmail: form['بريد الموظف'],\n  issue: form['وصف المشكلة'],\n  createdAt: createdAt.toISOString(),\n  slaDeadline: slaDeadline.toISOString(),\n  slaHours\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        112
+      ],
+      "id": "5bd5c761-990b-43de-8ab3-0d8535a8af61",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs",
+          "mode": "list",
+          "cachedResultName": "Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "الورقة1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticketId": "={{ $json.ticketId }}",
+            "employee": "={{ $json.employeeName }}",
+            "issue": "={{ $json.issue }}",
+            "category": "={{ $json.category }}",
+            "priority": "={{ $json.priority }}",
+            "team": "={{ $json.team }}",
+            "createdAt": "={{ $json.createdAt }}",
+            "slaDeadline": "={{ $json.slaDeadline }}",
+            "status": "مفتوحه",
+            "slaBreached": "لا"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ticketId",
+              "displayName": "ticketId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "employee",
+              "displayName": "employee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "issue",
+              "displayName": "issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "team",
+              "displayName": "team",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "createdAt",
+              "displayName": "createdAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "slaDeadline",
+              "displayName": "slaDeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "slaBreached",
+              "displayName": "slaBreached",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        800,
+        112
+      ],
+      "id": "e0778e8a-7573-461c-b7bb-5d2c3b0776fc",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5n1ZTwrHvTy8E86N",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "fhm156@hotmail.com",
+        "subject": "={{ $json.ticketId }} {{ $json.priority }} {{ $json.category }}",
+        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, sans-serif; line-height: 1.8; text-align: right;\">    <h2>🎫 تذكرة دعم تقني جديدة</h2>    <p><strong>رقم التذكرة:</strong> {{ $json.ticketId }}</p>    <p><strong>الموظف:</strong>{{ $('Code in JavaScript').item.json.employeeName }}</p>    <p><strong>الفريق المسؤول:</strong> {{ $json.team }}</p>    <p><strong>التصنيف:</strong> {{ $json.category }}</p>    <p><strong>الأولوية:</strong> {{ $json.priority }}</p>    <p><strong>المشكلة:</strong><br>   {{ $json.issue }}</p>    <p><strong>الحل المقترح:</strong><br> {{ $('Code in JavaScript').item.json.suggested_fix }} </p>    <p><strong>موعد انتهاء SLA:</strong><br>   {{ $json.slaDeadline }}</p>  </div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1024,
+        16
+      ],
+      "id": "f4f90935-a081-4161-b894-af2a1e5c889a",
+      "name": "Send a message",
+      "webhookId": "8e3c0046-d5ea-43e0-9511-7d11e7d314a6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JDWqPw08fOqLMwmh",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Code in JavaScript').item.json.employeeEmail }}",
+        "subject": "=تم استلام تذكرتك {{ $json.ticketId }}",
+        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, sans-serif; line-height: 1.8; text-align: right;\">    <h2>✅ تم استلام تذكرتك</h2>    <p>مرحباً <strong></strong>{{ $('Code in JavaScript').item.json.employeeName }}</p>    <p>     تم استلام تذكرتك بنجاح.   </p>    <p><strong>رقم التذكرة:</strong> {{ $json.ticketId }}</p>    <p><strong>تصنيف المشكلة:</strong> {{ $json.category }}</p>    <p><strong>الأولوية:</strong> {{ $json.priority }}</p>    <h3>🔧 حل مقترح يمكنك تجربته الآن</h3>    <p>    {{ $('Code in JavaScript').item.json.suggested_fix }}    </p>    <p>     إذا لم يتم حل المشكلة، سيتواصل معك فريق     <strong>{{ $json.team }}</strong>     قبل موعد انتهاء الـ SLA.   </p>    <p><strong>موعد انتهاء SLA:</strong><br>   {{ $json.slaDeadline }}</p>    <hr>    <p style=\"font-size: 12px;\">     هذه رسالة تلقائية من نظام الدعم التقني.   </p>  </div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1024,
+        208
+      ],
+      "id": "758e4351-4f6b-49fa-aacd-3c5ab0b7d507",
+      "name": "Send a message1",
+      "webhookId": "82e6bf4c-8b42-40ab-b7cc-e4e52b93b197",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JDWqPw08fOqLMwmh",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        432
+      ],
+      "id": "3e067299-328e-4fdd-973b-280112f028b8",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs",
+          "mode": "list",
+          "cachedResultName": "Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "الورقة1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        432
+      ],
+      "id": "78d54ef5-38d6-4165-9081-4954d1fd413b",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5n1ZTwrHvTy8E86N",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nreturn items.filter(i => new Date(i.json.slaDeadline) <= now && i.json.slaBreached !== 'نعم');"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        432
+      ],
+      "id": "f6ae4dd7-e9c0-439f-8c65-d6cf69315b7b",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "chatId": "1120179307",
+        "text": "=🚨 تجاوز SLA! التذكرة {{ $json.ticketId }} ({{ $json.priority }}) لسه مفتوحة وتجاوزت الوقت المحدد. الفريق: {{ $json.team }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        608,
+        416
+      ],
+      "id": "4c49a2c8-2c3a-4c78-b428-388c2a078260",
+      "name": "Send a text message",
+      "webhookId": "0fc71934-d129-452b-ae9f-11d86fa55066",
+      "credentials": {
+        "telegramApi": {
+          "id": "8XXAIGIrYUutGL4l",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs",
+          "mode": "list",
+          "cachedResultName": "Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "الورقة1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rLr7HOb1GlwJ7KWWTAPyrPbU24r81OFZSR9nztPvrZs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticketId": "={{ $('Code in JavaScript1').item.json.ticketId }}",
+            "slaBreached": "نعم"
+          },
+          "matchingColumns": [
+            "ticketId"
+          ],
+          "schema": [
+            {
+              "id": "ticketId",
+              "displayName": "ticketId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "employee",
+              "displayName": "employee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "issue",
+              "displayName": "issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "team",
+              "displayName": "team",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "createdAt",
+              "displayName": "createdAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "slaDeadline",
+              "displayName": "slaDeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "slaBreached",
+              "displayName": "slaBreached",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        784,
+        416
+      ],
+      "id": "0770181c-26e5-43ed-bad7-4ea172d92720",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5n1ZTwrHvTy8E86N",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "On form submission": [
+      {
+        "json": {
+          "اسم الموظف": "أحمد محمد",
+          "بريد الموظف": "ahmad.test@gmail.com",
+          "وصف المشكلة": "لا أستطيع تسجيل الدخول إلى حساب الشركة منذ صباح اليوم. تظهر لي رسالة أن كلمة المرور غير صحيحة، وجربت عدة مرات ولم أستطع الدخول إلى البريد أو الأنظمة الداخلية.",
+          "submittedAt": "2026-09-11T14:26:18.650+03:00",
+          "formMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "AI Agent": [
+      {
+        "json": {
+          "output": "```json\n{\n  \"category\": \"Account\",\n  \"priority\": \"Medium\",\n  \"team\": \"IT Support / IAM Team\",\n  \"suggested_fix\": \"تأكد من إغلاق مفتاح Caps Lock، والتحقق من لغة لوحة المفاتيح، ثم حاول استخدام بوابة إعادة تعيين كلمة المرور الذاتية (Self-Service Password Reset) إذا كانت مفعلة في الشركة.\"\n}\n```"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3244000e-a33c-45dd-aa8e-8bb2365590b4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a5a684b75324e6d2c88eba78c40965ea385652d197518547fda9971ebd20d242"
+  },
+  "nodeGroups": [],
+  "id": "gTesU25wr0HBXh45",
+  "tags": []
+}
