@@ -2,6 +2,8 @@
 
 I built this n8n workflow to organize incoming IT support requests, use AI to classify technical issues and set their priority, and monitor ticket deadlines based on SLA targets.
 
+<img width="463" height="199" alt="image" src="https://github.com/user-attachments/assets/9db82c51-19f9-425b-a552-baf264f0f21b" />
+
 ## How it works
 
 1. An employee submits a technical support request through a form with their name, email, and issue description.
